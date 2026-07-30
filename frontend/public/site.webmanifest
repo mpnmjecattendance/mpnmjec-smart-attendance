@@ -1,0 +1,17 @@
+{
+  "name": "MPNMJEC Smart Attendance System",
+  "short_name": "Attendance",
+  "description": "Smart attendance system for academic institutions.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a2540",
+  "theme_color": "#0a2540",
+  "icons": [
+    {
+      "src": "/image-r2.png",
+      "sizes": "200x200",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

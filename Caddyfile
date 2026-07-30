@@ -1,0 +1,11 @@
+mpnmjecattendance.duckdns.org {
+    encode gzip
+    root * C:\Users\Admin\Desktop\ATTENDANCE_SYSTEM\frontend\dist
+
+    handle_path /api/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    try_files {path} /index.html
+    file_server
+}

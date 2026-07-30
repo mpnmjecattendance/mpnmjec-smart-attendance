@@ -1,0 +1,16 @@
+{
+  "venvPath": "backend",
+  "venv": ".venv",
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "off",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "include": [
+    "backend"
+  ],
+  "exclude": [
+    "backend/.venv",
+    "frontend/node_modules",
+    "frontend/dist"
+  ]
+}
