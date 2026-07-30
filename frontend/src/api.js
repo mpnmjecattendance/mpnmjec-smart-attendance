@@ -26,6 +26,9 @@ const ATTENDANCE_MARK_TIMEOUT_MS = 15000;
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
+  headers: {
+    'ngrok-skip-browser-warning': 'true'
+  }
 });
 
 export function authHeaders(token) {
