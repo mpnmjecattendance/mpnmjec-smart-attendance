@@ -36,3 +36,19 @@ npm run dev
 .\start-backend.ps1    # starts backend
 .\start-frontend.ps1   # starts frontend
 ```
+
+---
+
+## 🔑 Create / Reset Admin Account
+
+1. Open `backend/.env` and edit your admin credentials:
+   ```env
+   ADMIN_EMAIL=admin@mpnmjec.ac.in
+   ADMIN_PASSWORD=YourPasswordHere
+   ```
+
+2. Run the seeding script in PowerShell:
+   ```powershell
+   .\backend\.venv\Scripts\python.exe -m backend.seed_admin
+   ```
+
