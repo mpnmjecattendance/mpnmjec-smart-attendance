@@ -63,3 +63,4 @@ npm run dev
    ```
 
 
+.\run-live.ps1
