@@ -168,6 +168,12 @@ def read_root():
     return {"message": "Welcome to MPNMJEC Smart Attendance API"}
 
 
+@app.get("/health/face-recognition")
+def read_face_recognition_health():
+    load_ai_service()
+    return {"status": "ready", "message": "Face recognition runtime is ready"}
+
+
 def normalize_role(role: Optional[str]) -> str:
     return (role or "").strip().lower()
 

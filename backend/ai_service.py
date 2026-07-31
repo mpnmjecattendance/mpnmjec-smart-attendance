@@ -5,6 +5,7 @@ import base64
 import binascii
 import threading
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
 
 try:
@@ -19,9 +20,29 @@ except ImportError as exc:
 else:
     FACE_RECOGNITION_IMPORT_ERROR = None
 
-INSIGHTFACE_MODEL_NAME = os.getenv("INSIGHTFACE_MODEL_NAME", "buffalo_l")
+INSIGHTFACE_MODEL_NAME = os.getenv("INSIGHTFACE_MODEL_NAME", "buffalo_s")
 INSIGHTFACE_DET_SIZE = int(os.getenv("INSIGHTFACE_DET_SIZE", "320"))
-INSIGHTFACE_MODEL_ROOT = os.getenv("INSIGHTFACE_MODEL_ROOT", "~/.insightface")
+
+
+def resolve_insightface_model_root() -> str:
+    configured_root = os.getenv("INSIGHTFACE_MODEL_ROOT")
+    if configured_root:
+        return configured_root
+
+    module_path = Path(__file__).resolve()
+    candidates = [Path.home() / ".insightface"]
+    candidates.extend(parent / ".insightface" for parent in module_path.parents)
+
+    for candidate in candidates:
+        model_dir = candidate / "models" / INSIGHTFACE_MODEL_NAME
+        model_zip = candidate / "models" / f"{INSIGHTFACE_MODEL_NAME}.zip"
+        if model_dir.exists() or model_zip.exists():
+            return str(candidate)
+
+    return str(Path.home() / ".insightface")
+
+
+INSIGHTFACE_MODEL_ROOT = resolve_insightface_model_root()
 
 
 def init_face_analyzer():

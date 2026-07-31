@@ -12,6 +12,7 @@ const FACE_DETECTOR_MODEL_PATH = `${import.meta.env.BASE_URL}models/blaze_face_s
 const DETECTION_INTERVAL_MS = 100;
 const MIN_STABLE_POSE_FRAMES = 1;
 const CAPTURE_CONFIRMATION_MS = 360;
+const CAPTURE_RETRY_DELAY_MS = 1200;
 const ANGLE_MATCH_TIMEOUT_MS = 1000;
 const SIDE_YAW_THRESHOLD = 0.10;
 const FRONT_YAW_THRESHOLD = 0.25;
@@ -93,6 +94,15 @@ function getCaptureCompletionMessage(mode) {
   return mode === 'student'
     ? 'All required face angles have been captured. Review the record and submit enrollment.'
     : 'All required staff captures are complete. Review the account and finish creation.';
+}
+
+function isFaceCaptureServiceError(error) {
+  const status = error?.response?.status;
+  return status === 503
+    || status === 502
+    || status === 504
+    || error?.code === 'ERR_NETWORK'
+    || error?.code === 'ECONNABORTED';
 }
 
 function EnrollmentStepper({ currentStep, steps }) {
@@ -256,6 +266,7 @@ export function UsersPage({ token, user, notify }) {
   const verticalDirectionRef = useRef(null);
   const captureAdvanceTimerRef = useRef(null);
   const captureFlashTimerRef = useRef(null);
+  const captureRetryAfterRef = useRef(0);
 
   const [createMode, setCreateMode] = useState('student');
   const [meta, setMeta] = useState({ departments: [], roles: [] });
@@ -311,6 +322,7 @@ export function UsersPage({ token, user, notify }) {
     missedDetectionsRef.current = 0;
     poseStableFramesRef.current = 0;
     faceDetectedSinceRef.current = null;
+    captureRetryAfterRef.current = 0;
     setAutoCapturing(false);
     setFaceBox(null);
     setCaptureFlash(false);
@@ -330,6 +342,7 @@ export function UsersPage({ token, user, notify }) {
     missedDetectionsRef.current = 0;
     poseStableFramesRef.current = 0;
     faceDetectedSinceRef.current = null;
+    captureRetryAfterRef.current = 0;
     frontPoseRef.current = null;
     sideDirectionRef.current = null;
     verticalDirectionRef.current = null;
@@ -774,6 +787,7 @@ export function UsersPage({ token, user, notify }) {
           poseStableFramesRef.current = 0;
           missedDetectionsRef.current = 0;
           faceDetectedSinceRef.current = null;
+          captureRetryAfterRef.current = 0;
           setCaptureIndex((current) => current + 1);
           setCameraStatus('ready');
           setCaptureTone('info');
@@ -784,11 +798,22 @@ export function UsersPage({ token, user, notify }) {
       }
     } catch (requestError) {
       const nextMessage = getApiErrorMessage(requestError, `No face detected for ${currentAngle.label}.`);
+      const serviceUnavailable = isFaceCaptureServiceError(requestError);
       poseStableFramesRef.current = 0;
       faceDetectedSinceRef.current = null;
-      setCameraStatus('ready');
       setCaptureTone('danger');
       setCaptureIndicator(nextMessage);
+
+      if (serviceUnavailable) {
+        stopCamera();
+        setCameraStatus('error');
+        setCaptureError(nextMessage);
+        setCaptureMessage(nextMessage);
+        return;
+      }
+
+      captureRetryAfterRef.current = performance.now() + CAPTURE_RETRY_DELAY_MS;
+      setCameraStatus('ready');
       setCaptureMessage(currentAngle.instruction);
     } finally {
       setAutoCapturing(false);
@@ -802,6 +827,7 @@ export function UsersPage({ token, user, notify }) {
     currentAngle,
     playCaptureTone,
     token,
+    stopCamera,
     triggerCaptureFlash,
   ]);
 
@@ -840,6 +866,10 @@ export function UsersPage({ token, user, notify }) {
         return;
       }
       lastDetectionAt = now;
+
+      if (captureRetryAfterRef.current > now) {
+        return;
+      }
 
       try {
         const result = detector.detectForVideo(videoElement, now);
@@ -977,6 +1007,7 @@ export function UsersPage({ token, user, notify }) {
     frontPoseRef.current = null;
     sideDirectionRef.current = null;
     verticalDirectionRef.current = null;
+    captureRetryAfterRef.current = 0;
     setEnrollmentStep(2);
     setCaptureIndex(0);
     setCaptureEntries([]);
@@ -1003,6 +1034,7 @@ export function UsersPage({ token, user, notify }) {
     frontPoseRef.current = null;
     sideDirectionRef.current = null;
     verticalDirectionRef.current = null;
+    captureRetryAfterRef.current = 0;
     setEnrollmentStep(2);
     setCaptureEntries([]);
     setCaptureIndex(0);
@@ -1085,7 +1117,7 @@ export function UsersPage({ token, user, notify }) {
   const captureStepContent = enrollmentStep === 2 ? (
     <div className={`capture-stage-flow capture-tone-${captureTone}`}>
       {captureError && cameraStatus === 'error' ? (
-        <Notice tone="danger" title="Camera access issue">
+        <Notice tone="danger" title="Face capture unavailable">
           {captureError}
         </Notice>
       ) : null}

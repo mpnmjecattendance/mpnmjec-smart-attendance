@@ -56,6 +56,7 @@ def vision_imports_work() -> bool:
 def install_windows_insightface_fallback() -> None:
     """Install InsightFace without its optional compiled 3D-mesh extension."""
     run_pip("Cython>=0.29.36,<3.1")
+    run_pip("wheel>=0.43,<1")
 
     with tempfile.TemporaryDirectory(prefix="attendance-insightface-") as temporary_directory:
         temp_path = Path(temporary_directory)
