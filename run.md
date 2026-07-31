@@ -39,6 +39,16 @@ npm run dev
 
 ---
 
+## 💾 Local SQLite Database & Inspection
+
+- When `SUPABASE_DATABASE_URL` in `backend/.env` is left blank, the project automatically connects to the local SQLite database file located at `backend/attendance.db`.
+- To inspect or view database tables and records:
+  1. Open **DB Browser for SQLite** (or any SQLite GUI reader).
+  2. Click **Open Database** and select `backend/attendance.db`.
+  3. Go to the **Browse Data** tab to view tables such as `users`, `attendance`, and `settings`.
+
+---
+
 ## 🔑 Create / Reset Admin Account
 
 1. Open `backend/.env` and edit your admin credentials:
@@ -47,8 +57,9 @@ npm run dev
    ADMIN_PASSWORD=YourPasswordHere
    ```
 
-2. Run the seeding script in PowerShell:
+2. Sync the new credentials from `backend/.env` to the SQLite database:
    ```powershell
    .\backend\.venv\Scripts\python.exe -m backend.seed_admin
    ```
+
 

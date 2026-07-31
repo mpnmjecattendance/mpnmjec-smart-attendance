@@ -4,7 +4,7 @@ $ngrokConfig = Join-Path $repoRoot "ngrok.yml"
 $startBackend = Join-Path $repoRoot "start-backend.ps1"
 
 Write-Host "Starting ngrok tunnel..."
-Start-Process -FilePath $ngrokExe -ArgumentList "http 8000 --domain luster-frantic-sharper.ngrok-free.dev --config `"$ngrokConfig`"" -WindowStyle Hidden
+Start-Process -FilePath $ngrokExe -ArgumentList "http 8000 --domain trombone-jailbreak-retold.ngrok-free.dev --config `"$ngrokConfig`"" -WindowStyle Hidden
 
 Write-Host "Starting backend server..."
 & $startBackend

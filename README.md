@@ -154,13 +154,17 @@ Use `-CoreOnly` only when intentionally running the non-biometric API.
 On Windows, the launcher installs the face runtime without requiring Microsoft
 C++ Build Tools.
 
-### 6. Seed Admin
+### 6. Seed Admin / Update Credentials
 
-After the backend can connect to the database:
+When `SUPABASE_DATABASE_URL` is left empty in `backend/.env`, the backend automatically connects to the local SQLite database at `backend/attendance.db`.
+
+To seed or update admin credentials from `backend/.env` into the database:
 
 ```powershell
 .\backend\.venv\Scripts\python.exe -m backend.seed_admin
 ```
+
+To view or inspect the SQLite database, open `backend/attendance.db` in **DB Browser for SQLite**.
 
 ### 7. Start Frontend
 
