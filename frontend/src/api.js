@@ -420,12 +420,15 @@ export const attendanceApi = {
     });
     return response.data;
   },
-  async windowStatus(token) {
-    const response = await api.get('/attendance/window', withAuth(token));
+  async windowStatus(token, mode = 'student') {
+    const response = await api.get('/attendance/window', {
+      ...withAuth(token),
+      params: cleanParams({ mode }),
+    });
     return response.data;
   },
-  async recognize(token, imageBase64) {
-    const response = await api.post('/recognize/', { image_base64: imageBase64 }, {
+  async recognize(token, imageBase64, mode = 'student') {
+    const response = await api.post('/recognize/', { image_base64: imageBase64, mode }, {
       ...withAuth(token),
       timeout: RECOGNITION_TIMEOUT_MS,
     });

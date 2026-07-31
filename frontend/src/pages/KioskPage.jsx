@@ -211,7 +211,7 @@ function mapViewportBoxToVideoCrop(viewportBox, videoElement) {
   };
 }
 
-export function KioskPage({ token, onUnauthorized }) {
+export function KioskPage({ token, mode = 'student', onUnauthorized }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanFrameRef = useRef(null);
@@ -526,7 +526,7 @@ export function KioskPage({ token, onUnauthorized }) {
     setStatusText('Checking attendance window...');
 
     try {
-      const windowStatus = await attendanceApi.windowStatus(token);
+      const windowStatus = await attendanceApi.windowStatus(token, mode);
       if (!windowStatus.is_open) {
         const blockedStage = resolveAttendanceStage(windowStatus.result_code);
         setStage(blockedStage);
@@ -544,7 +544,7 @@ export function KioskPage({ token, onUnauthorized }) {
       }
 
       setStatusText(STAGE_MAP.scanning.message);
-      const recognized = await attendanceApi.recognize(token, imageBase64);
+      const recognized = await attendanceApi.recognize(token, imageBase64, mode);
 
       if (recognized.status !== 'success' || !recognized.user) {
         setStage('failed');
@@ -554,7 +554,7 @@ export function KioskPage({ token, onUnauthorized }) {
         return;
       }
 
-      const attendance = await attendanceApi.mark(token, recognized.user.id);
+      const attendance = await attendanceApi.mark(token, recognized.user.id, mode);
       const resultCode = attendance.result_code || (attendance.already_marked ? 'already_marked' : 'marked');
       const nextStage = resolveAttendanceStage(resultCode);
       const nextMessage = attendance.message
@@ -590,7 +590,7 @@ export function KioskPage({ token, onUnauthorized }) {
     } finally {
       processingRef.current = false;
     }
-  }, [cameraReady, captureFrame, detectorReady, onUnauthorized, playFeedbackTone, queueReset, stage, token]);
+  }, [cameraReady, captureFrame, detectorReady, mode, onUnauthorized, playFeedbackTone, queueReset, stage, token]);
 
   const detectFaces = useCallback(() => {
     const detector = detectorRef.current;
@@ -601,15 +601,19 @@ export function KioskPage({ token, onUnauthorized }) {
     }
 
     try {
-      const result = detector.detectForVideo(video, performance.now());
-      const primaryDetection = getPrimaryDetection(result?.detections || []);
+      const detections = detector.detectForVideo(video, performance.now())?.detections || [];
+      const primaryFace = getPrimaryDetection(detections);
+      const faceBoundingBox = primaryFace?.boundingBox;
+      const viewportBox = mapBoundingBoxToViewport(faceBoundingBox, video);
+      const scanBox = getScanFrameViewportBox(video, scanFrameRef.current);
+      const insideScanFrame = isFaceInsideScanFrame(viewportBox, scanBox);
 
-      if (!primaryDetection?.boundingBox) {
-        stableDetectionsRef.current = 0;
-        if (!processingRef.current && !resetTimerRef.current) {
-          missedDetectionsRef.current += 1;
-          if (missedDetectionsRef.current >= MAX_MISSED_DETECTIONS) {
-            setFaceBox(null);
+      if (!primaryFace || !viewportBox || !insideScanFrame) {
+        missedDetectionsRef.current += 1;
+        if (missedDetectionsRef.current >= MAX_MISSED_DETECTIONS) {
+          stableDetectionsRef.current = 0;
+          setFaceBox(null);
+          if (stage === 'scanning') {
             setStage('ready');
             setStatusText(READY_MESSAGE);
           }
@@ -619,23 +623,7 @@ export function KioskPage({ token, onUnauthorized }) {
 
       missedDetectionsRef.current = 0;
       stableDetectionsRef.current += 1;
-
-      if (!resetTimerRef.current) {
-        const nextBox = mapBoundingBoxToViewport(primaryDetection.boundingBox, video);
-        if (nextBox) {
-          setFaceBox(nextBox);
-        }
-
-        const scanBox = getScanFrameViewportBox(video, scanFrameRef.current);
-        if (!isFaceInsideScanFrame(nextBox, scanBox)) {
-          stableDetectionsRef.current = 0;
-          if (!processingRef.current) {
-            setStage('ready');
-            setStatusText('Move to the center');
-          }
-          return;
-        }
-      }
+      setFaceBox(viewportBox);
 
       if (
         !processingRef.current
@@ -650,7 +638,7 @@ export function KioskPage({ token, onUnauthorized }) {
       setStage('error');
       setStatusText('Face detection failed');
     }
-  }, [cameraReady, detectorReady, runRecognitionCycle]);
+  }, [cameraReady, detectorReady, runRecognitionCycle, stage]);
 
   useEffect(() => {
     if (!cameraReady || !detectorReady || stage === 'error') {
@@ -666,6 +654,30 @@ export function KioskPage({ token, onUnauthorized }) {
 
   return (
     <div className={`kiosk-screen kiosk-tone-${stageConfig.tone}`}>
+      <div className="kiosk-mode-badge" style={{
+        position: 'absolute',
+        top: '1.25rem',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 20,
+        padding: '0.5rem 1.25rem',
+        borderRadius: '9999px',
+        background: 'rgba(15, 23, 42, 0.88)',
+        backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255, 255, 255, 0.18)',
+        color: '#ffffff',
+        fontSize: '0.85rem',
+        fontWeight: 600,
+        letterSpacing: '0.04em',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+      }}>
+        <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: mode === 'staff' ? '#3b82f6' : '#22c55e' }} />
+        {mode === 'staff' ? '👨‍🏫 STAFF BIOMETRIC KIOSK' : '🎓 STUDENT BIOMETRIC KIOSK'}
+      </div>
+
       {cameraReady ? (
         <video
           ref={setVideoRef}

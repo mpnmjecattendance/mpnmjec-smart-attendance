@@ -29,10 +29,13 @@ export function canAccessStaffAttendance(user) {
   return normalizeRole(user?.role) === 'staff' && Boolean(user?.is_class_advisor);
 }
 
-export function canAccessKioskSession(activeSession) {
+export function canAccessKioskSession(activeSession, kioskMode = null) {
   const role = normalizeRole(activeSession?.user?.role);
   if (!activeSession?.token || !KIOSK_ALLOWED_ROLES.includes(role)) {
     return false;
+  }
+  if (kioskMode === 'staff') {
+    return role === 'admin' || role === 'principal';
   }
   if (role === 'staff') {
     return Boolean(activeSession?.user?.can_take_attendance);

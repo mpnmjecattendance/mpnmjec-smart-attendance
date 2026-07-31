@@ -465,6 +465,7 @@ class SettingsOut(SettingsBase):
 
 class RecognizeRequest(BaseModel):
     image_base64: str
+    mode: Optional[str] = "student"
 
 
 class RecognizeResponse(BaseModel):

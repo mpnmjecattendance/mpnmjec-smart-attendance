@@ -4580,16 +4580,25 @@ def read_attendance_records(
 
 @app.get("/attendance/window", response_model=schemas.AttendanceWindowStatusOut)
 def read_attendance_window_status(
+    mode: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_attendance_operator),
 ):
     settings = ensure_settings(db)
     calendar_rules = get_calendar_rules(db)
     legacy_holiday_dates = get_legacy_holiday_dates(settings)
+    target_mode = (mode or "").strip().lower()
+    if target_mode == "staff":
+        audiences = ["staff"]
+    elif target_mode == "student":
+        audiences = ["students"]
+    else:
+        audiences = get_attendance_operator_audiences(db, current_user)
+
     window_status = resolve_operator_attendance_window(
         get_current_datetime(),
         settings,
-        get_attendance_operator_audiences(db, current_user),
+        audiences,
         calendar_rules,
         legacy_holiday_dates,
     )
@@ -4612,14 +4621,23 @@ def recognize_face(
     if not query_emb:
         raise HTTPException(status_code=400, detail="No face detected in the image")
 
-    visible_users = get_attendance_operator_users_query(db, current_user).all()
+    visible_query = get_attendance_operator_users_query(db, current_user)
+    kiosk_mode = (req.mode or "student").strip().lower()
+    if kiosk_mode == "staff":
+        visible_query = visible_query.filter(func.lower(models.User.role) != "student")
+    elif kiosk_mode == "student":
+        visible_query = visible_query.filter(func.lower(models.User.role) == "student")
+
+    visible_users = visible_query.all()
     user_ids = [user.id for user in visible_users]
     if not user_ids:
-        raise HTTPException(status_code=404, detail="No users found in your scope")
+        target_name = "staff" if kiosk_mode == "staff" else "student"
+        raise HTTPException(status_code=404, detail=f"No enrolled {target_name} users found in your scope")
 
     db_embeddings = db.query(models.Embedding).filter(models.Embedding.user_id.in_(user_ids)).all()
     if not db_embeddings:
-        raise HTTPException(status_code=404, detail="No enrolled faces found in your scope")
+        target_name = "staff" if kiosk_mode == "staff" else "student"
+        raise HTTPException(status_code=404, detail=f"No enrolled {target_name} faces found in your scope")
 
     all_user_embeddings = [(embedding.user_id, embedding.embedding_vector) for embedding in db_embeddings]
     match_id, confidence = ai_service.find_best_match(
