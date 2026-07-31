@@ -678,6 +678,39 @@ export function KioskPage({ token, mode = 'student', onUnauthorized }) {
         {mode === 'staff' ? '👨‍🏫 STAFF BIOMETRIC KIOSK' : '🎓 STUDENT BIOMETRIC KIOSK'}
       </div>
 
+      <button
+        type="button"
+        className="kiosk-exit-button"
+        onClick={onUnauthorized}
+        style={{
+          position: 'absolute',
+          top: '1.25rem',
+          right: '1.5rem',
+          zIndex: 30,
+          padding: '0.45rem 0.95rem',
+          borderRadius: '9999px',
+          background: 'rgba(225, 29, 72, 0.85)',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.22)',
+          color: '#ffffff',
+          fontSize: '0.82rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+        }}
+        title="Exit Kiosk & Logout"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        Exit Kiosk
+      </button>
+
       {cameraReady ? (
         <video
           ref={setVideoRef}

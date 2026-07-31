@@ -84,6 +84,8 @@ export default function KioskStandaloneApp() {
   function handleLogout() {
     clearStoredSession(KIOSK_SESSION_STORAGE_KEY);
     setSession(null);
+    setSelectedMode(null);
+    setAccessError('');
   }
 
   if (checkingSession) {
