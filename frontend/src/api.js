@@ -87,7 +87,10 @@ export const authApi = {
     formData.append('password', password);
 
     const response = await api.post('/token', formData, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'ngrok-skip-browser-warning': 'true',
+      },
     });
     return response.data;
   },
